@@ -1,0 +1,136 @@
+{
+	"info": {
+		"_postman_id": "6485c58d-0675-4f5d-9eed-4c2ecd8174ae",
+		"name": "Prepack",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "V1 Doot",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:9091/v1/doot",
+					"host": [
+						"localhost"
+					],
+					"port": "9091",
+					"path": [
+						"v1",
+						"doot"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "V1 Secured Doot",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:9091/v1/sec/doot",
+					"host": [
+						"localhost"
+					],
+					"port": "9091",
+					"path": [
+						"v1",
+						"sec",
+						"doot"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "V1 Admin Doot",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:9091/v1/adm/doot",
+					"host": [
+						"localhost"
+					],
+					"port": "9091",
+					"path": [
+						"v1",
+						"adm",
+						"doot"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "V1 Signup",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"userkey\": \"NewUser\",\n    \"password\": \"NewPass\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:9091/v1/signup",
+					"host": [
+						"localhost"
+					],
+					"port": "9091",
+					"path": [
+						"v1",
+						"signup"
+					],
+					"query": [
+						{
+							"key": "userkey",
+							"value": "NewUser",
+							"disabled": true
+						},
+						{
+							"key": "password",
+							"value": "NewPass",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "V1 User Login",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"userkey\": \"NewUser\",\n    \"password\": \"NewPass\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:9091/v1/login",
+					"host": [
+						"localhost"
+					],
+					"port": "9091",
+					"path": [
+						"v1",
+						"login"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
