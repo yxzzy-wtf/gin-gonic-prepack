@@ -21,6 +21,22 @@ func (a *Auth) SetPassword(pass string) error {
 	return nil
 }
 
+func (a *Auth) Login(pass string, tfCode string) (error, bool) {
+	if err := a.CheckPassword(pass); err != nil {
+		return err, false
+	}
+
+	if err := a.ValidateTwoFactor(tfCode, time.Now()); err != nil {
+		return err, true
+	}
+
+	if !a.Verified {
+		return errors.New("not yet verified"), true
+	}
+
+	return nil, false
+}
+
 func (a *Auth) CheckPassword(pass string) error {
 	return bcrypt.CompareHashAndPassword([]byte(a.PasswordHash), []byte(pass))
 }
