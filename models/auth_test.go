@@ -3,6 +3,8 @@ package models
 import (
 	"testing"
 	"time"
+
+	"github.com/yxzzy-wtf/gin-gonic-prepack/database"
 )
 
 func TestBadPasswords(t *testing.T) {
@@ -75,6 +77,8 @@ func TestTwoFactorWhenNotSet(t *testing.T) {
 }
 
 func TestTwoFactor(t *testing.T) {
+	database.InitTestDb()
+
 	a := Auth{}
 	a.TwoFactorSecret = "AAAAAAAAAAAAAAAA"
 

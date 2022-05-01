@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -53,6 +54,12 @@ func (a *Auth) login(pass string, tfCode string, stamp time.Time) (error, bool) 
 
 func (a *Auth) CheckPassword(pass string) error {
 	return bcrypt.CompareHashAndPassword([]byte(a.PasswordHash), []byte(pass))
+}
+
+type TotpUsage struct {
+	LoginUid uuid.UUID `gorm:"index"`
+	Used     time.Time
+	Code     string `gorm:"index"`
 }
 
 func (a *Auth) ValidateTwoFactor(tfCode string, stamp time.Time) error {

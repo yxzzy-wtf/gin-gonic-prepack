@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -93,9 +94,34 @@ func UserLogin() gin.HandlerFunc {
 			return
 		}
 
+		if loginVals.TwoFactor != "" && !checkTwoFactorNotReused(&u.Auth, loginVals.TwoFactor) {
+			fmt.Printf("WARNING: two factor code %v reused for %v\n", loginVals.TwoFactor, u.Uid)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: "2fa reused"})
+			return
+		}
+
 		jwt, maxAge := u.GetJwt()
 		c.SetCookie(JwtHeader, jwt, maxAge, "/v1/sec/", "", true, true)
 	}
+}
+
+func checkTwoFactorNotReused(a *models.Auth, tfCode string) bool {
+	var count int64
+	database.Db.Model(&models.TotpUsage{}).Where("login_uid = ? AND code = ?", a.Uid, tfCode).Count(&count)
+
+	if count > 0 {
+		// We found a token, should reject
+		return false
+	}
+
+	used := models.TotpUsage{
+		LoginUid: a.Uid,
+		Code:     tfCode,
+		Used:     time.Now(),
+	}
+	go database.Db.Create(&used)
+
+	return true
 }
 
 func UserVerify() gin.HandlerFunc {
@@ -239,6 +265,12 @@ func AdminLogin() gin.HandlerFunc {
 			return
 		}
 
+		if loginVals.TwoFactor != "" && !checkTwoFactorNotReused(&a.Auth, loginVals.TwoFactor) {
+			fmt.Printf("WARNING: two factor code %v reused for admin %v\n", loginVals.TwoFactor, a.Uid)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: "2fa reused"})
+			return
+		}
+
 		jwt, maxAge := a.GetJwt()
 		c.SetCookie(JwtHeader, jwt, maxAge, "/v1/adm", "", true, true)
 	}
@@ -283,6 +315,59 @@ func UserAuth() gin.HandlerFunc {
 
 func AdminAuth() gin.HandlerFunc {
 	return genericAuth("admin", models.AdminHmac)
+}
+
+// A handler to attach to any method which requires a two-factor check
+// at the time of calling. An example of this might be: changing email,
+// changing password, or other high-sensitivity actions that warrant
+// an extra 2FA check.
+func LiveTwoFactor() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		fmt.Println("Required live 2fa")
+		pif, exists := c.Get("principal")
+		p := pif.(util.PrincipalInfo)
+		if !exists {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		var a models.Auth
+		fmt.Println(p)
+		if p.Role == "user" {
+			u := models.User{}
+			if err := database.Db.Find(&u, "uid = ?", p.Uid).Error; err != nil {
+				c.AbortWithStatus(http.StatusUnauthorized)
+				return
+			}
+			a = u.Auth
+		} else if p.Role == "admin" {
+			adm := models.Admin{}
+			if err := database.Db.Find(&adm, "uid = ?", p.Uid).Error; err != nil {
+				c.AbortWithStatus(http.StatusUnauthorized)
+				return
+			}
+			a = adm.Auth
+		}
+
+		if a.TwoFactorSecret != "" {
+			tfCode, exists := c.GetQuery("twofactorcode")
+			if !exists || len(tfCode) != 6 {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: "2fa required"})
+				return
+			}
+
+			if err := a.ValidateTwoFactor(tfCode, time.Now()); err != nil {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: err.Error()})
+				return
+			}
+
+			if !checkTwoFactorNotReused(&a, tfCode) {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: "2fa reused"})
+				return
+			}
+		}
+
+	}
 }
 
 func Doot() gin.HandlerFunc {

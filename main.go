@@ -15,6 +15,7 @@ import (
 func Migrate(g *gorm.DB) {
 	g.AutoMigrate(&models.User{})
 	g.AutoMigrate(&models.Admin{})
+	g.AutoMigrate(&models.TotpUsage{})
 }
 
 func main() {
@@ -36,6 +37,7 @@ func main() {
 	v1Sec := v1.Group("/sec", core.UserAuth())
 
 	v1Sec.GET("/doot", core.Doot())
+	v1Sec.GET("/2fa-doot", core.LiveTwoFactor(), core.Doot())
 
 	// Administrative login
 	v1.POST("/admin", core.AdminLogin())
