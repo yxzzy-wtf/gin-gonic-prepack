@@ -8,24 +8,19 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
-	"github.com/yxzzy-wtf/gin-gonic-prepack/database"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/models"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/util"
 )
 
 type login struct {
-	UserKey   string `json:"userkey" binding:"required"`
+	UserKey   string `json:"userkey" binding:"required,email"`
 	Password  string `json:"password" binding:"required"`
 	TwoFactor string `json:"twofactorcode"`
 }
 
 type signup struct {
-	UserKey  string `json:"userkey" binding:"required"`
+	UserKey  string `json:"userkey" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
-}
-
-type failmsg struct {
-	Reason string `json:"reason"`
 }
 
 const JwtHeader = "jwt"
@@ -36,7 +31,7 @@ func UserSignup() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var signupVals signup
 		if err := c.ShouldBind(&signupVals); err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, failmsg{"Requires username and password"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, util.FailMsg{Reason: "invalid fields, requires userkey=email and password"})
 			return
 		}
 
@@ -45,21 +40,25 @@ func UserSignup() gin.HandlerFunc {
 		}
 
 		if err := u.SetPassword(signupVals.Password); err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, failmsg{"Bad password"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, util.FailMsg{Reason: "bad password"})
 			return
 		}
 
-		if err := database.Db.Model(&u).Create(&u).Error; err != nil {
-			if err.Error() == "UNIQUE constraint failed: users.email" {
-				c.AbortWithStatusJSON(http.StatusInternalServerError, failmsg{"already exists"})
-			} else {
+		if err := u.Create(); err != nil {
+			if err.Error() != "UNIQUE constraint failed: users.email" {
 				fmt.Println(fmt.Errorf("error: %w", err))
 				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			} else {
+				// Email conflict means we should still mock verify
+				go util.SendEmail("Signup Attempt", "Someone tried to sign up with this email. This is a cursory warning. If it was you, good news! You're already signed up!", u.Email)
 			}
-			return
+		} else {
+			// Send verification
+			go util.SendEmail("Verify Email", "TODO: generate verification token", u.Email)
 		}
 
-		c.JSON(http.StatusOK, map[string]string{"id": u.Uid.String()})
+		c.JSON(http.StatusOK, util.NextMsg{Next: "verification pending"})
 	}
 }
 
@@ -67,7 +66,7 @@ func UserLogin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var loginVals login
 		if err := c.ShouldBind(&loginVals); err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, failmsg{"Requires username and password"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, util.FailMsg{Reason: "Requires username and password"})
 		}
 
 		u := models.User{}
@@ -78,7 +77,7 @@ func UserLogin() gin.HandlerFunc {
 
 		if err, returnErr := u.Login(loginVals.Password, loginVals.TwoFactor); err != nil {
 			if returnErr {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, failmsg{err.Error()})
+				c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: err.Error()})
 			} else {
 				c.AbortWithStatus(http.StatusUnauthorized)
 			}
@@ -94,11 +93,11 @@ func AdminLogin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var loginVals login
 		if err := c.ShouldBind(&loginVals); err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, failmsg{"requires username and password"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, util.FailMsg{Reason: "requires username and password"})
 		}
 
 		if loginVals.TwoFactor == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, failmsg{"admin access requires 2FA"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: "admin access requires 2FA"})
 			return
 		}
 
@@ -110,7 +109,7 @@ func AdminLogin() gin.HandlerFunc {
 
 		if err, returnErr := a.Login(loginVals.Password, loginVals.TwoFactor); err != nil {
 			if returnErr {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, failmsg{err.Error()})
+				c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: err.Error()})
 			} else {
 				c.AbortWithStatus(http.StatusUnauthorized)
 			}
@@ -126,28 +125,28 @@ func genericAuth(expectedRole string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenStr := c.GetHeader(JwtHeader)
 		if tokenStr == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, failmsg{"requires `" + JwtHeader + "` header"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: "requires `" + JwtHeader + "` header"})
 			return
 		}
 
 		claims, err := parseJwt(tokenStr, models.UserHmac)
 		if err != nil {
 			if strings.HasPrefix(err.Error(), "token ") || err.Error() == "signature is invalid" {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, failmsg{err.Error()})
+				c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: err.Error()})
 			} else {
 				fmt.Println(err)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, failmsg{"something went wrong"})
+				c.AbortWithStatusJSON(http.StatusInternalServerError, util.FailMsg{Reason: "something went wrong"})
 			}
 			return
 		}
 		if claims["role"] != expectedRole {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, failmsg{"wrong access role"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: "wrong access role"})
 			return
 		}
 
 		uid, err := uuid.Parse(claims["sub"].(string))
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, failmsg{"cannot extract sub"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: "cannot extract sub"})
 			return
 		}
 

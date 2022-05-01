@@ -2,6 +2,7 @@ package util
 
 import (
 	"crypto/rand"
+	"fmt"
 
 	"github.com/google/uuid"
 )
@@ -22,4 +23,13 @@ type PrincipalInfo struct {
 
 type FailMsg struct {
 	Reason string `json:"reason"`
+}
+
+type NextMsg struct {
+	Next string `json:"nextaction"`
+}
+
+func SendEmail(title string, body string, recipient string) {
+	//TODO
+	fmt.Println("Send", title, body, "to", recipient)
 }

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/database"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/util"
 )
@@ -38,6 +39,30 @@ func (u *User) GetJwt() (string, int) {
 func (u *User) ByEmail(email string) error {
 	if err := database.Db.Where("email = ?", email).First(&u).Error; err != nil {
 		return errors.New("not found")
+	}
+
+	return nil
+}
+
+func (u *User) Create() error {
+	if u.Uid != uuid.Nil {
+		return errors.New("cannot create with existing uid")
+	}
+
+	if err := database.Db.Create(&u).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (u *User) Save() error {
+	if u.Uid == uuid.Nil {
+		return errors.New("cannot save without uid")
+	}
+
+	if err := database.Db.Save(&u).Error; err != nil {
+		return err
 	}
 
 	return nil
