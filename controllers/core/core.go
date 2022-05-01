@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/database"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/models"
@@ -103,7 +102,7 @@ func UserVerify() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		verifyJwt, _ := c.GetQuery("verify")
 
-		claims, err := parseJwt(verifyJwt, models.UserHmac)
+		claims, err := util.ParseJwt(verifyJwt, models.UserHmac)
 		if err != nil || claims["role"] != "verify" {
 			fmt.Println("bad claim or role not 'verify'", err)
 			c.AbortWithStatus(http.StatusUnauthorized)
@@ -175,7 +174,7 @@ func UserResetForgottenPassword() gin.HandlerFunc {
 			return
 		}
 
-		claims, err := parseJwt(resetVals.Token, models.UserHmac)
+		claims, err := util.ParseJwt(resetVals.Token, models.UserHmac)
 		if err != nil || claims["role"] != "reset" {
 			fmt.Println("bad claim or role not 'reset'", err)
 			c.AbortWithStatus(http.StatusUnauthorized)
@@ -245,7 +244,7 @@ func AdminLogin() gin.HandlerFunc {
 	}
 }
 
-func genericAuth(expectedRole string) gin.HandlerFunc {
+func genericAuth(expectedRole string, hmac []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenStr := c.GetHeader(JwtHeader)
 		if tokenStr == "" {
@@ -253,7 +252,7 @@ func genericAuth(expectedRole string) gin.HandlerFunc {
 			return
 		}
 
-		claims, err := parseJwt(tokenStr, models.UserHmac)
+		claims, err := util.ParseJwt(tokenStr, hmac)
 		if err != nil {
 			if strings.HasPrefix(err.Error(), "token ") || err.Error() == "signature is invalid" {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: err.Error()})
@@ -279,27 +278,11 @@ func genericAuth(expectedRole string) gin.HandlerFunc {
 }
 
 func UserAuth() gin.HandlerFunc {
-	return genericAuth("user")
+	return genericAuth("user", models.UserHmac)
 }
 
 func AdminAuth() gin.HandlerFunc {
-	return genericAuth("admin")
-}
-
-func parseJwt(tokenStr string, hmac []byte) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("bad signing method %v", token.Header["alg"])
-		}
-
-		return hmac, nil
-	})
-
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		return claims, nil
-	} else {
-		return jwt.MapClaims{}, err
-	}
+	return genericAuth("admin", models.AdminHmac)
 }
 
 func Doot() gin.HandlerFunc {

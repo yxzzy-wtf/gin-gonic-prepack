@@ -16,7 +16,7 @@ type Admin struct {
 
 const adminJwtDuration = time.Hour * 2
 
-var adminHmac = util.GenerateHmac()
+var AdminHmac = util.GenerateHmac()
 
 func (a *Admin) GetJwt() (string, int) {
 	j := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -26,7 +26,7 @@ func (a *Admin) GetJwt() (string, int) {
 		"role": "admin",
 	})
 
-	jstr, err := j.SignedString(adminHmac)
+	jstr, err := j.SignedString(AdminHmac)
 	if err != nil {
 		// we should ALWAYS be able to build and sign a str
 		panic(err)

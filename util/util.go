@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 )
 
@@ -32,4 +33,20 @@ type NextMsg struct {
 func SendEmail(title string, body string, recipient string) {
 	//TODO
 	fmt.Println("Send", title, body, "to", recipient)
+}
+
+func ParseJwt(tokenStr string, hmac []byte) (jwt.MapClaims, error) {
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("bad signing method %v", token.Header["alg"])
+		}
+
+		return hmac, nil
+	})
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		return claims, nil
+	} else {
+		return jwt.MapClaims{}, err
+	}
 }
