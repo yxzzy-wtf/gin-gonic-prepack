@@ -71,7 +71,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"userkey\": \"NewUser\",\n    \"password\": \"NewPass\"\n}",
+					"raw": "{\n    \"userkey\": \"newser@user.com\",\n    \"password\": \"NewPass\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -87,18 +87,6 @@
 					"path": [
 						"v1",
 						"signup"
-					],
-					"query": [
-						{
-							"key": "userkey",
-							"value": "NewUser",
-							"disabled": true
-						},
-						{
-							"key": "password",
-							"value": "NewPass",
-							"disabled": true
-						}
 					]
 				}
 			},
@@ -111,7 +99,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"userkey\": \"NewUser\",\n    \"password\": \"NewPass\"\n}",
+					"raw": "{\n    \"userkey\": \"newser@user.com\",\n    \"password\": \"ChangedPass\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -127,6 +115,87 @@
 					"path": [
 						"v1",
 						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "V1 User Verify",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:9091/v1/verify?verify=TOKEN",
+					"host": [
+						"localhost"
+					],
+					"port": "9091",
+					"path": [
+						"v1",
+						"verify"
+					],
+					"query": [
+						{
+							"key": "verify",
+							"value": "TOKEN"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "V1 User Forgot Password",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"userkey\": \"newser@user.com\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:9091/v1/forgot",
+					"host": [
+						"localhost"
+					],
+					"port": "9091",
+					"path": [
+						"v1",
+						"forgot"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "V1 User Reset Password",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NTE0MjYzMjYsImlhdCI6MTY1MTQyNTQyNiwicm9sZSI6InJlc2V0Iiwic3ViIjoiZDFkNDBkMmUtOTFlYy00ZTBiLWEzY2EtM2U1ZTBkNGU5MTkxIn0.NE_0oV5MGJzuQuad-TUen1c7VCfFW9t6LMJPag8XC38\",\n    \"password\": \"ChangedPass\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:9091/v1/reset",
+					"host": [
+						"localhost"
+					],
+					"port": "9091",
+					"path": [
+						"v1",
+						"reset"
 					]
 				}
 			},
