@@ -1,3 +1,6 @@
+// The controllers.core package should act as the prime pin controlling
+// User or Admin activity throughout the rest of the site. It should offer
+// Login lifecycle methods, as well as per-request JWT-based authentication.
 package core
 
 import (
@@ -13,28 +16,40 @@ import (
 	"github.com/yxzzy-wtf/gin-gonic-prepack/util"
 )
 
+// Basic structure for login calls to both Admin and User access
 type login struct {
 	UserKey   string `json:"userkey" binding:"required,email"`
 	Password  string `json:"password" binding:"required"`
 	TwoFactor string `json:"twofactorcode"`
 }
 
+// Basic structure for users to sign up based on models.User
 type signup struct {
 	UserKey  string `json:"userkey" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
 }
 
+// Body query responsible for requesting a password reset
 type forgotten struct {
 	UserKey string `json:"userkey" binding:"required,email"`
 }
 
+// Body query responsible for resetting a password with a reset token
 type reset struct {
 	Token       string `json:"token" binding:"required"`
 	NewPassword string `json:"password" binding:"required"`
 }
 
+// The default name of the JWT header expected. It is localized and can be changed
+// to anything valid here
 const JwtHeader = "jwt"
 
+// User signup process. Tests that an email and password has been supplied, that
+// the email is unique and that the password is valid, then creates the user and
+// sends a verification email to the given email address. To prevent enumeration
+// attacks, this method will always return {next:"verification pending"}, even
+// if the given email is already in the system. If the email is already in the system,
+// that account will be emailed notifying them of the signup attempt.
 func UserSignup() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var signupVals signup
@@ -71,6 +86,9 @@ func UserSignup() gin.HandlerFunc {
 	}
 }
 
+// Function to log in a user based on a given email, password [and 2FA code]. Similar to
+// AdminLogin but with slight differences. Resistant to enumeration attacks as error messages
+// are only displayed IFF the user exists AND the password is correct, otherwise a 401 is returned
 func UserLogin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var loginVals login
@@ -105,25 +123,9 @@ func UserLogin() gin.HandlerFunc {
 	}
 }
 
-func checkTwoFactorNotReused(a *models.Auth, tfCode string) bool {
-	var count int64
-	database.Db.Model(&models.TotpUsage{}).Where("login_uid = ? AND code = ?", a.Uid, tfCode).Count(&count)
-
-	if count > 0 {
-		// We found a token, should reject
-		return false
-	}
-
-	used := models.TotpUsage{
-		LoginUid: a.Uid,
-		Code:     tfCode,
-		Used:     time.Now(),
-	}
-	go database.Db.Create(&used)
-
-	return true
-}
-
+// Parses a given JWT token and attempts to verify the `sub` in that token IFF
+// the token role == "verify". Verifying an already-verified user returns
+// a 200OK{next:"login"} without any action
 func UserVerify() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		verifyJwt, _ := c.GetQuery("verify")
@@ -169,10 +171,14 @@ func UserVerify() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, util.NextMsg{Next: "verified"})
+		c.JSON(http.StatusOK, util.NextMsg{Next: "login"})
 	}
 }
 
+// Indicates to the service that the user has forgotten their password and
+// requires a reset token; then sends an email with the appropriate reset token
+// to the user email in question. The same response will be returned if the given
+// user email does not exist
 func UserForgotPassword() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var forgotVals forgotten
@@ -192,6 +198,8 @@ func UserForgotPassword() gin.HandlerFunc {
 	}
 }
 
+// Method to reset a password, requiring a new password and a valid JWT token
+// of role="reset".
 func UserResetForgottenPassword() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var resetVals reset
@@ -238,6 +246,7 @@ func UserResetForgottenPassword() gin.HandlerFunc {
 	}
 }
 
+// Admin login functionality, similar to user login but requires 2FA to be set up.
 func AdminLogin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var loginVals login
@@ -276,6 +285,8 @@ func AdminLogin() gin.HandlerFunc {
 	}
 }
 
+// Generic authorization applicable to both User and Admin roles. This takes an
+// expected role and HMAC, parses the JWT, and sets the PrincipalInfo accordingly.
 func genericAuth(expectedRole string, hmac []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenStr := c.GetHeader(JwtHeader)
@@ -309,10 +320,12 @@ func genericAuth(expectedRole string, hmac []byte) gin.HandlerFunc {
 	}
 }
 
+// Wrapper for User authentication, effectively `genericAuth("user", models.UserHmac)`
 func UserAuth() gin.HandlerFunc {
 	return genericAuth("user", models.UserHmac)
 }
 
+// Wrapper for User authentication, effectively `genericAuth("admin", models.AdminHmac)`
 func AdminAuth() gin.HandlerFunc {
 	return genericAuth("admin", models.AdminHmac)
 }
@@ -323,7 +336,6 @@ func AdminAuth() gin.HandlerFunc {
 // an extra 2FA check.
 func LiveTwoFactor() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		fmt.Println("Required live 2fa")
 		pif, exists := c.Get("principal")
 		p := pif.(util.PrincipalInfo)
 		if !exists {
@@ -370,6 +382,8 @@ func LiveTwoFactor() gin.HandlerFunc {
 	}
 }
 
+// A simple context-aware ping method. If there is a "principal" in this request context
+// it will indicate the principal Uid and role in the response
 func Doot() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		piCtx, exists := c.Get("principal")
@@ -381,4 +395,29 @@ func Doot() gin.HandlerFunc {
 			c.JSON(http.StatusOK, map[string]string{"snoot": "dooted"})
 		}
 	}
+}
+
+// To prevent 2FA theft attacks, a TOTP needs to be... well, an OTP. This will
+// check the database to confirm that this user UID has never used this token in
+// past, and will fail if such a token has been used by this user. It will then
+// add this UID:code combination to the TotpUsage table to prevent future re-use.
+// There may be some sense in adding a means by which to clear out TotpUsage objects
+// older than a certain time.
+func checkTwoFactorNotReused(a *models.Auth, tfCode string) bool {
+	var count int64
+	database.Db.Model(&models.TotpUsage{}).Where("login_uid = ? AND code = ?", a.Uid, tfCode).Count(&count)
+
+	if count > 0 {
+		// We found a token, should reject
+		return false
+	}
+
+	used := models.TotpUsage{
+		LoginUid: a.Uid,
+		Code:     tfCode,
+		Used:     time.Now(),
+	}
+	go database.Db.Create(&used)
+
+	return true
 }
