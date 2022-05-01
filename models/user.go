@@ -36,6 +36,40 @@ func (u *User) GetJwt() (string, int) {
 	return jstr, int(userJwtDuration.Seconds())
 }
 
+func (u *User) GetVerificationJwt() string {
+	j := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":  u.Uid.String(),
+		"iat":  time.Now().Unix(),
+		"exp":  time.Now().Add(time.Hour * 24).Unix(),
+		"role": "verify",
+	})
+
+	jstr, err := j.SignedString(UserHmac)
+	if err != nil {
+		// we should ALWAYS be able to build and sign a str
+		panic(err)
+	}
+
+	return jstr
+}
+
+func (u *User) GetResetPasswordJwt() string {
+	j := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":  u.Uid.String(),
+		"iat":  time.Now().Unix(),
+		"exp":  time.Now().Add(time.Minute * 15).Unix(),
+		"role": "reset",
+	})
+
+	jstr, err := j.SignedString(UserHmac)
+	if err != nil {
+		// we should ALWAYS be able to build and sign a str
+		panic(err)
+	}
+
+	return jstr
+}
+
 func (u *User) ByEmail(email string) error {
 	if err := database.Db.Where("email = ?", email).First(&u).Error; err != nil {
 		return errors.New("not found")

@@ -27,9 +27,12 @@ func main() {
 	// Ping functionality
 	v1.GET("/doot", core.Doot())
 
-	// Standard user login
+	// Standard user signup, verify, login and forgot/reset pw
 	v1.POST("/signup", core.UserSignup())
 	v1.POST("/login", core.UserLogin())
+	v1.GET("/verify", core.UserVerify())
+	v1.POST("/forgot", core.UserForgotPassword())
+	v1.POST("/reset", core.UserResetForgottenPassword())
 	v1Sec := v1.Group("/sec", core.UserAuth())
 
 	v1Sec.GET("/doot", core.Doot())

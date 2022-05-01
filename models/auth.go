@@ -21,8 +21,6 @@ func (a *Auth) SetPassword(pass string) error {
 	return nil
 }
 
-const VerifiedRequired = false
-
 func (a *Auth) Login(pass string, tfCode string) (error, bool) {
 	if err := a.CheckPassword(pass); err != nil {
 		return err, false
@@ -32,7 +30,7 @@ func (a *Auth) Login(pass string, tfCode string) (error, bool) {
 		return err, true
 	}
 
-	if !a.Verified && VerifiedRequired {
+	if !a.Verified {
 		return errors.New("not yet verified"), true
 	}
 

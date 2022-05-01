@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
+	"github.com/yxzzy-wtf/gin-gonic-prepack/database"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/models"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/util"
 )
@@ -21,6 +22,15 @@ type login struct {
 type signup struct {
 	UserKey  string `json:"userkey" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
+}
+
+type forgotten struct {
+	UserKey string `json:"userkey" binding:"required,email"`
+}
+
+type reset struct {
+	Token       string `json:"token" binding:"required"`
+	NewPassword string `json:"password" binding:"required"`
 }
 
 const JwtHeader = "jwt"
@@ -53,7 +63,8 @@ func UserSignup() gin.HandlerFunc {
 			}
 		} else {
 			// Send verification
-			go util.SendEmail("Verify Email", "TODO: generateverification token", u.Email)
+			verifyToken := u.GetVerificationJwt()
+			go util.SendEmail("Verify Email", "Helloooo! Go here to verify: http://localhost:9091/v1/verify?verify="+verifyToken, u.Email)
 		}
 
 		c.JSON(http.StatusOK, util.NextMsg{Next: "verification pending"})
@@ -65,6 +76,7 @@ func UserLogin() gin.HandlerFunc {
 		var loginVals login
 		if err := c.ShouldBind(&loginVals); err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, util.FailMsg{Reason: "Requires username and password"})
+			return
 		}
 
 		u := models.User{}
@@ -84,6 +96,120 @@ func UserLogin() gin.HandlerFunc {
 
 		jwt, maxAge := u.GetJwt()
 		c.SetCookie(JwtHeader, jwt, maxAge, "/v1/sec/", "", true, true)
+	}
+}
+
+func UserVerify() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		verifyJwt, _ := c.GetQuery("verify")
+
+		claims, err := parseJwt(verifyJwt, models.UserHmac)
+		if err != nil || claims["role"] != "verify" {
+			fmt.Println("bad claim or role not 'verify'", err)
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		// Yay! Jwt is a verify token, let's verify the linked user
+		uid, err := uuid.Parse(claims["sub"].(string))
+		if err != nil {
+			fmt.Println("sub should ALWAYS be valid uuid at this point??", err)
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+		verifying := models.User{
+			Auth: models.Auth{
+				Base: models.Base{
+					Uid: uid,
+				},
+			},
+		}
+
+		if err := database.Db.Find(&verifying).Error; err != nil {
+			fmt.Println("could not find user", err)
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		if verifying.Verified {
+			// User already verified
+			c.JSON(http.StatusOK, util.NextMsg{Next: "verified"})
+			return
+		}
+
+		verifying.Verified = true
+		if err := verifying.Save(); err != nil {
+			fmt.Println("could not verify user", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		c.JSON(http.StatusOK, util.NextMsg{Next: "verified"})
+	}
+}
+
+func UserForgotPassword() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var forgotVals forgotten
+		if err := c.ShouldBind(&forgotVals); err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, util.FailMsg{Reason: "requires email"})
+			return
+		}
+
+		u := models.User{}
+		if err := u.ByEmail(forgotVals.UserKey); err == nil {
+			// Actually send renew token
+			forgotJwt := u.GetResetPasswordJwt()
+			go util.SendEmail("Forgot Password", "Token to reset password: "+forgotJwt, u.Email)
+		}
+
+		c.JSON(http.StatusOK, util.NextMsg{Next: "check email to reset"})
+	}
+}
+
+func UserResetForgottenPassword() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var resetVals reset
+		if err := c.ShouldBind(&resetVals); err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, util.FailMsg{Reason: "requires new pass and token"})
+			return
+		}
+
+		claims, err := parseJwt(resetVals.Token, models.UserHmac)
+		if err != nil || claims["role"] != "reset" {
+			fmt.Println("bad claim or role not 'reset'", err)
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		uid, err := uuid.Parse(claims["sub"].(string))
+		if err != nil {
+			fmt.Println("sub should ALWAYS be valid uuid at this point??", err)
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+		resetting := models.User{
+			Auth: models.Auth{
+				Base: models.Base{
+					Uid: uid,
+				},
+			},
+		}
+
+		if err := database.Db.Find(&resetting).Error; err != nil {
+			fmt.Println("could not find user", err)
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		resetting.SetPassword(resetVals.NewPassword)
+		if err := resetting.Save(); err != nil {
+			fmt.Println("could not save user", err)
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		c.JSON(http.StatusOK, util.NextMsg{Next: "login"})
 	}
 }
 
