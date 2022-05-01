@@ -11,24 +11,23 @@ import (
 
 type User struct {
 	Auth
-	Email string `gorm:"unique"`
+	Email string `gorm:"unique" sql:"index"`
 }
 
 const userJwtDuration = time.Hour * 24
 
-var userHmac = util.GenerateHmac()
+var UserHmac = util.GenerateHmac()
 
 func (u *User) GetJwt() (string, int) {
-	exp := time.Now().Add(userJwtDuration)
 	j := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub":  u.Uid.String(),
-		"iat":  time.Now(),
-		"exp":  exp,
+		"iat":  time.Now().Unix(),
+		"exp":  time.Now().Add(userJwtDuration).Unix(),
 		"role": "user",
 		"tid":  u.Tenant.String(),
 	})
 
-	jstr, err := j.SignedString(userHmac)
+	jstr, err := j.SignedString(UserHmac)
 	if err != nil {
 		// we should ALWAYS be able to build and sign a str
 		panic(err)

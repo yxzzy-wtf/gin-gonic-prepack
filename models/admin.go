@@ -11,7 +11,7 @@ import (
 
 type Admin struct {
 	Auth
-	Email string
+	Email string `gorm:"unique" sql:"index"`
 }
 
 const adminJwtDuration = time.Hour * 2
@@ -19,11 +19,10 @@ const adminJwtDuration = time.Hour * 2
 var adminHmac = util.GenerateHmac()
 
 func (a *Admin) GetJwt() (string, int) {
-	exp := time.Now().Add(adminJwtDuration)
 	j := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub":  a.Uid.String(),
-		"iat":  time.Now(),
-		"exp":  exp,
+		"iat":  time.Now().Unix(),
+		"exp":  time.Now().Add(adminJwtDuration).Unix(),
 		"role": "admin",
 	})
 
