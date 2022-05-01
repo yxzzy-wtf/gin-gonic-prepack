@@ -24,8 +24,6 @@ type signup struct {
 }
 
 const JwtHeader = "jwt"
-const ServicePath = "TODOPATH"
-const ServiceDomain = "TODODOMAIN"
 
 func UserSignup() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -55,7 +53,7 @@ func UserSignup() gin.HandlerFunc {
 			}
 		} else {
 			// Send verification
-			go util.SendEmail("Verify Email", "TODO: generate verification token", u.Email)
+			go util.SendEmail("Verify Email", "TODO: generateverification token", u.Email)
 		}
 
 		c.JSON(http.StatusOK, util.NextMsg{Next: "verification pending"})
@@ -85,7 +83,7 @@ func UserLogin() gin.HandlerFunc {
 		}
 
 		jwt, maxAge := u.GetJwt()
-		c.SetCookie(JwtHeader, jwt, maxAge, ServicePath, ServiceDomain, true, true)
+		c.SetCookie(JwtHeader, jwt, maxAge, "/v1/sec/", "", true, true)
 	}
 }
 
@@ -117,7 +115,7 @@ func AdminLogin() gin.HandlerFunc {
 		}
 
 		jwt, maxAge := a.GetJwt()
-		c.SetCookie(JwtHeader, jwt, maxAge, ServicePath, ServiceDomain, true, true)
+		c.SetCookie(JwtHeader, jwt, maxAge, "/v1/adm", "", true, true)
 	}
 }
 
