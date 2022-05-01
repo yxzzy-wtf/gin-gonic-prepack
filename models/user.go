@@ -11,7 +11,7 @@ import (
 
 type User struct {
 	Auth
-	Email string `gorm:"unique" sql:"index"`
+	Email string `gorm:"unique;index"`
 }
 
 const userJwtDuration = time.Hour * 24
@@ -24,7 +24,6 @@ func (u *User) GetJwt() (string, int) {
 		"iat":  time.Now().Unix(),
 		"exp":  time.Now().Add(userJwtDuration).Unix(),
 		"role": "user",
-		"tid":  u.Tenant.String(),
 	})
 
 	jstr, err := j.SignedString(UserHmac)

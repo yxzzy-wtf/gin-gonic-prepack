@@ -1,7 +1,6 @@
 package models
 
 import (
-	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -9,11 +8,10 @@ import (
 )
 
 type Base struct {
-	Uid     uuid.UUID `gorm:"type:uuid;primary_key;"`
-	Created time.Time
+	Uid     uuid.UUID `gorm:"type:uuid;primary_key;<-:create"`
+	Created time.Time `gorm:"<-:create"`
 	Updated time.Time
-	Deleted time.Time `sql:"index"`
-	Tenant  uuid.UUID `sql:"index"`
+	Deleted time.Time `gorm:"index"`
 }
 
 func (b *Base) BeforeCreate(scope *gorm.DB) error {
@@ -23,10 +21,6 @@ func (b *Base) BeforeCreate(scope *gorm.DB) error {
 }
 
 func (b *Base) BeforeSave(scope *gorm.DB) error {
-	if b.Tenant == uuid.Nil {
-		return errors.New("cannot save an untenanted object")
-	}
-
 	b.Updated = time.Now()
 	return nil
 }
