@@ -16,7 +16,7 @@ type Admin struct {
 
 const adminJwtDuration = time.Hour * 2
 
-var AdminHmac = util.GenerateHmac()
+var AdminHmac = util.GenerateHmac(64)
 
 func (a *Admin) GetJwt() (string, int) {
 	j := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{

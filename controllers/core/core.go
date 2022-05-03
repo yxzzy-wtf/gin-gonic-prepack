@@ -6,11 +6,13 @@ package core
 import (
 	"fmt"
 	"net/http"
+
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/yxzzy-wtf/gin-gonic-prepack/config"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/database"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/models"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/util"
@@ -74,12 +76,12 @@ func UserSignup() gin.HandlerFunc {
 				return
 			} else {
 				// Email conflict means we should still mock verify
-				go util.SendEmail("Signup Attempt", "Someone tried to sign up with this email. This is a cursory warning. If it was you, good news! You're already signed up!", u.Email)
+				go util.SendEmail("Signup Attempt", "Someone tried to sign up with this email. This is a cursory warning. If it was you, good news! You're already signed up!", []string{u.Email})
 			}
 		} else {
 			// Send verification
 			verifyToken := u.GetVerificationJwt()
-			go util.SendEmail("Verify Email", "Helloooo! Go here to verify: http://localhost:9091/v1/verify?verify="+verifyToken, u.Email)
+			go util.SendEmail("Verify Email", "Helloooo! Go here to verify: http://localhost:9091/v1/verify?verify="+verifyToken, []string{u.Email})
 		}
 
 		c.JSON(http.StatusOK, util.NextMsg{Next: "verification pending"})
@@ -91,15 +93,28 @@ func UserSignup() gin.HandlerFunc {
 // are only displayed IFF the user exists AND the password is correct, otherwise a 401 is returned
 func UserLogin() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Why do we do this? Assuming a consistent and stable service and an attacker
+		// with an equally consistent internet connection, it is possible to
+		// still launch an enumeration attack by comparing the time of a known
+		// extant address and a known non-extant one. For this reason, login duration is
+		// floored to at least 5 seconds
+		minTime := make(chan bool)
+		go func(c chan bool) {
+			time.Sleep(time.Second * 5)
+			minTime <- true
+		}(minTime)
+
 		var loginVals login
 		if err := c.ShouldBind(&loginVals); err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, util.FailMsg{Reason: "Requires username and password"})
+			<-minTime
 			return
 		}
 
 		u := models.User{}
 		if err := u.ByEmail(loginVals.UserKey); err != nil {
 			c.AbortWithStatus(http.StatusUnauthorized)
+			<-minTime
 			return
 		}
 
@@ -109,17 +124,20 @@ func UserLogin() gin.HandlerFunc {
 			} else {
 				c.AbortWithStatus(http.StatusUnauthorized)
 			}
+			<-minTime
 			return
 		}
 
 		if loginVals.TwoFactor != "" && !checkTwoFactorNotReused(&u.Auth, loginVals.TwoFactor) {
 			fmt.Printf("WARNING: two factor code %v reused for %v\n", loginVals.TwoFactor, u.Uid)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: "2fa reused"})
+			<-minTime
 			return
 		}
 
 		jwt, maxAge := u.GetJwt()
 		c.SetCookie(JwtHeader, jwt, maxAge, "/v1/sec/", "", true, true)
+		<-minTime
 	}
 }
 
@@ -191,7 +209,7 @@ func UserForgotPassword() gin.HandlerFunc {
 		if err := u.ByEmail(forgotVals.UserKey); err == nil {
 			// Actually send renew token
 			forgotJwt := u.GetResetPasswordJwt()
-			go util.SendEmail("Forgot Password", "Token to reset password: "+forgotJwt, u.Email)
+			go util.SendEmail("Forgot Password", "Token to reset password: "+forgotJwt, []string{u.Email})
 		}
 
 		c.JSON(http.StatusOK, util.NextMsg{Next: "check email to reset"})
@@ -249,19 +267,24 @@ func UserResetForgottenPassword() gin.HandlerFunc {
 // Admin login functionality, similar to user login but requires 2FA to be set up.
 func AdminLogin() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var loginVals login
-		if err := c.ShouldBind(&loginVals); err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, util.FailMsg{Reason: "requires username and password"})
-		}
+		// Same as user slowdown
+		minTime := make(chan bool)
+		go func(c chan bool) {
+			time.Sleep(time.Second * 5)
+			minTime <- true
+		}(minTime)
 
-		if loginVals.TwoFactor == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: "admin access requires 2FA"})
+		var loginVals login
+		if err := c.ShouldBind(&loginVals); err != nil || loginVals.TwoFactor == "" {
+			c.AbortWithStatusJSON(http.StatusBadRequest, util.FailMsg{Reason: "Requires username, 2FA and password"})
+			<-minTime
 			return
 		}
 
 		a := models.Admin{}
 		if err := a.ByEmail(loginVals.UserKey); err != nil {
 			c.AbortWithStatus(http.StatusUnauthorized)
+			<-minTime
 			return
 		}
 
@@ -271,17 +294,20 @@ func AdminLogin() gin.HandlerFunc {
 			} else {
 				c.AbortWithStatus(http.StatusUnauthorized)
 			}
+			<-minTime
 			return
 		}
 
 		if loginVals.TwoFactor != "" && !checkTwoFactorNotReused(&a.Auth, loginVals.TwoFactor) {
-			fmt.Printf("WARNING: two factor code %v reused for admin %v\n", loginVals.TwoFactor, a.Uid)
+			fmt.Printf("WARNING: two factor code %v reused by admin %v\n", loginVals.TwoFactor, a.Uid)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: "2fa reused"})
+			<-minTime
 			return
 		}
 
 		jwt, maxAge := a.GetJwt()
-		c.SetCookie(JwtHeader, jwt, maxAge, "/v1/adm", "", true, true)
+		c.SetCookie(JwtHeader, jwt, maxAge, "/v1/sec/", "", true, true)
+		<-minTime
 	}
 }
 
@@ -344,7 +370,6 @@ func LiveTwoFactor() gin.HandlerFunc {
 		}
 
 		var a models.Auth
-		fmt.Println(p)
 		if p.Role == "user" {
 			u := models.User{}
 			if err := database.Db.Find(&u, "uid = ?", p.Uid).Error; err != nil {
@@ -379,6 +404,37 @@ func LiveTwoFactor() gin.HandlerFunc {
 			}
 		}
 
+	}
+}
+
+func StarterAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var count int64
+		database.Db.Model(&models.Admin{}).Count(&count)
+		if count != 0 {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		var signupVals signup
+		if err := c.ShouldBind(&signupVals); err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, util.FailMsg{Reason: "invalid fields, requires userkey=email and password"})
+			return
+		}
+
+		a := models.Admin{}
+		if err := a.ByEmail(signupVals.UserKey); err == nil {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		a.Email = signupVals.UserKey
+		a.SetPassword(signupVals.Password)
+		a.GenerateNewTwoFactorSecret()
+
+		go util.SendEmail("Admin Created", "A new admin, "+a.Email+", has been created", config.Config.AdminEmails)
+
+		c.JSON(http.StatusOK, util.NextMsg{Next: "db verify"})
 	}
 }
 

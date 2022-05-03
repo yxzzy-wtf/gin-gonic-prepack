@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
+	"github.com/google/uuid"
+	"github.com/yxzzy-wtf/gin-gonic-prepack/config"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/controllers/core"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/database"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/models"
@@ -19,6 +22,8 @@ func Migrate(g *gorm.DB) {
 }
 
 func main() {
+	config.LoadConfig()
+
 	db := database.Init()
 	Migrate(db)
 
@@ -27,6 +32,21 @@ func main() {
 
 	// Ping functionality
 	v1.GET("/doot", core.Doot())
+
+	if config.Config.AllowFreshAdminGeneration {
+		var adminCount int64
+		database.Db.Model(models.Admin{}).Count(&adminCount)
+
+		if adminCount == 0 {
+			randUri := uuid.New()
+			v1.POST("/"+randUri.String(), core.StarterAdmin())
+
+			fmt.Println("#################")
+			fmt.Println("No admins and AllowFreshAdminGeneration=TRUE")
+			fmt.Println("Sign up starter at: /" + randUri.String())
+			fmt.Println("#################")
+		}
+	}
 
 	// Standard user signup, verify, login and forgot/reset pw
 	v1.POST("/signup", core.UserSignup())

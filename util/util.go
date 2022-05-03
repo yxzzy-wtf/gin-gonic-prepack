@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 )
 
-func GenerateHmac() []byte {
-	b := make([]byte, 64)
+func GenerateHmac(length int) []byte {
+	b := make([]byte, length)
 	if _, err := rand.Read(b); err != nil {
 		panic(err)
 	}
@@ -30,9 +30,9 @@ type NextMsg struct {
 	Next string `json:"nextaction"`
 }
 
-func SendEmail(title string, body string, recipient string) {
+func SendEmail(title string, body string, recipients []string) {
 	//TODO
-	fmt.Println("Send", title, body, "to", recipient)
+	fmt.Println("Send", title, body, "to", recipients)
 }
 
 func ParseJwt(tokenStr string, hmac []byte) (jwt.MapClaims, error) {

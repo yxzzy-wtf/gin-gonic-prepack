@@ -17,7 +17,7 @@ type User struct {
 
 const userJwtDuration = time.Hour * 24
 
-var UserHmac = util.GenerateHmac()
+var UserHmac = util.GenerateHmac(64)
 
 func (u *User) GetJwt() (string, int) {
 	j := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{

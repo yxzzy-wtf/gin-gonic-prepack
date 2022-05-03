@@ -7,15 +7,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pquerna/otp/totp"
+	"github.com/yxzzy-wtf/gin-gonic-prepack/util"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Auth struct {
 	Base
-	PasswordHash      string
-	TwoFactorSecret   string
-	TwoFactorRecovery string
-	Verified          bool
+	PasswordHash      string `json:"-"`
+	TwoFactorSecret   string `json:"-"`
+	TwoFactorRecovery string `json:"-"`
+	Verified          bool   `json:"-"`
 }
 
 func (a *Auth) SetPassword(pass string) error {
@@ -84,4 +85,8 @@ func (a *Auth) ValidateTwoFactor(tfCode string, stamp time.Time) error {
 		// May be a renewal code
 		return errors.New("unlock invalid")
 	}
+}
+
+func (a *Auth) GenerateNewTwoFactorSecret() {
+	a.TwoFactorSecret = string(util.GenerateHmac(20))
 }
