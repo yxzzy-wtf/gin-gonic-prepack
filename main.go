@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -28,25 +27,22 @@ func main() {
 	Migrate(db)
 
 	r := gin.Default()
-	v1 := r.Group("/v1")
 
-	// Ping functionality
-	v1.GET("/doot", core.Doot())
-
+	// Fresh admin functionality
 	if config.Config.AllowFreshAdminGeneration {
 		var adminCount int64
 		database.Db.Model(models.Admin{}).Count(&adminCount)
 
 		if adminCount == 0 {
 			randUri := uuid.New()
-			v1.POST("/"+randUri.String(), core.StarterAdmin())
-
-			fmt.Println("#################")
-			fmt.Println("No admins and AllowFreshAdminGeneration=TRUE")
-			fmt.Println("Sign up starter at: /" + randUri.String())
-			fmt.Println("#################")
+			r.POST("/"+randUri.String(), core.StarterAdmin())
 		}
 	}
+
+	v1 := r.Group("/v1")
+
+	// Ping functionality
+	v1.GET("/doot", core.Doot())
 
 	// Standard user signup, verify, login and forgot/reset pw
 	v1.POST("/signup", core.UserSignup())

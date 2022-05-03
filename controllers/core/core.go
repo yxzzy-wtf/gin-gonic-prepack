@@ -432,6 +432,11 @@ func StarterAdmin() gin.HandlerFunc {
 		a.SetPassword(signupVals.Password)
 		a.GenerateNewTwoFactorSecret()
 
+		if err := database.Db.Create(&a).Error; err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
 		go util.SendEmail("Admin Created", "A new admin, "+a.Email+", has been created", config.Config.AdminEmails)
 
 		c.JSON(http.StatusOK, util.NextMsg{Next: "db verify"})

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/base32"
 	"errors"
 	"strings"
 	"time"
@@ -88,5 +89,6 @@ func (a *Auth) ValidateTwoFactor(tfCode string, stamp time.Time) error {
 }
 
 func (a *Auth) GenerateNewTwoFactorSecret() {
-	a.TwoFactorSecret = string(util.GenerateHmac(20))
+	secretBytes := util.GenerateHmac(20)
+	a.TwoFactorSecret = base32.StdEncoding.EncodeToString(secretBytes)
 }
