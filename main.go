@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/config"
@@ -10,6 +11,7 @@ import (
 	"github.com/yxzzy-wtf/gin-gonic-prepack/controllers/core"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/database"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/models"
+	"github.com/yxzzy-wtf/gin-gonic-prepack/scheduled"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -26,6 +28,15 @@ func main() {
 
 	db := database.Init()
 	Migrate(db)
+
+	// Scheduled tasks
+	scheduled.Schedule(func() (string, time.Duration) {
+		err := database.Db.Where("used < ?", time.Now().Add(-24*time.Hour)).Delete(&models.TotpUsage{}).Error
+		if err != nil {
+			return "purge failed: " + err.Error(), time.Hour
+		}
+		return "purged old TOTP usages", time.Hour * 24
+	})
 
 	r := gin.Default()
 
