@@ -1,4 +1,44 @@
 basePath: /v1
+definitions:
+  core.forgotten:
+    properties:
+      userkey:
+        type: string
+    required:
+    - userkey
+    type: object
+  core.login:
+    properties:
+      password:
+        type: string
+      twofactorcode:
+        type: string
+      userkey:
+        type: string
+    required:
+    - password
+    - userkey
+    type: object
+  core.reset:
+    properties:
+      password:
+        type: string
+      token:
+        type: string
+    required:
+    - password
+    - token
+    type: object
+  core.signup:
+    properties:
+      password:
+        type: string
+      userkey:
+        type: string
+    required:
+    - password
+    - userkey
+    type: object
 info:
   contact: {}
   title: Go-Gin Prepack
@@ -6,7 +46,6 @@ info:
 paths:
   /adm/doot:
     get:
-      description: admin ping and login check
       parameters:
       - description: JWT Cookie set by /admin
         in: header
@@ -14,31 +53,19 @@ paths:
         required: true
         type: string
       responses: {}
-      summary: ping example
+      summary: Admin ming
   /admin:
     post:
       consumes:
       - application/json
       description: Secured login for any user accounts
       parameters:
-      - description: user email
+      - description: email, password and 2FA code. 2FA code is required
         in: body
-        name: userkey
+        name: login
         required: true
         schema:
-          type: string
-      - description: user password
-        in: body
-        name: password
-        required: true
-        schema:
-          type: string
-      - description: the 2fa token
-        in: body
-        name: twofactorcode
-        required: true
-        schema:
-          type: string
+          $ref: '#/definitions/core.login'
       produces:
       - application/json
       responses:
@@ -55,21 +82,20 @@ paths:
       summary: User login
   /doot:
     get:
-      description: unauthenticated ping
       responses: {}
-      summary: ping example
+      summary: Unauthenticated Ping
   /forgot:
     post:
       consumes:
       - application/json
       description: Request a password reset for the provided userkey
       parameters:
-      - description: user email to reset
+      - description: email to reset
         in: body
         name: userkey
         required: true
         schema:
-          type: string
+          $ref: '#/definitions/core.forgotten'
       produces:
       - application/json
       responses:
@@ -84,23 +110,12 @@ paths:
       - application/json
       description: Secured login for any user accounts
       parameters:
-      - description: user email
+      - description: Login information
         in: body
-        name: userkey
+        name: login
         required: true
         schema:
-          type: string
-      - description: user password
-        in: body
-        name: password
-        required: true
-        schema:
-          type: string
-      - description: the 2fa token for the user, if activated
-        in: body
-        name: twofactorcode
-        schema:
-          type: string
+          $ref: '#/definitions/core.login'
       produces:
       - application/json
       responses:
@@ -121,18 +136,12 @@ paths:
       - application/json
       description: Use a JWT token to validate and reset a password
       parameters:
-      - description: the token emailed to the user
+      - description: the reset token and the password
         in: body
-        name: token
+        name: reset
         required: true
         schema:
-          type: string
-      - description: the new password value
-        in: body
-        name: password
-        required: true
-        schema:
-          type: string
+          $ref: '#/definitions/core.reset'
       produces:
       - application/json
       responses:
@@ -145,7 +154,6 @@ paths:
       summary: Password reset
   /sec/doot:
     get:
-      description: user ping and login check
       parameters:
       - description: JWT Cookie set by /login
         in: header
@@ -153,25 +161,19 @@ paths:
         required: true
         type: string
       responses: {}
-      summary: ping example
+      summary: User ping
   /signup:
     post:
       consumes:
       - application/json
       description: Sign a user up for a new account
       parameters:
-      - description: user email
+      - description: The signup information
         in: body
-        name: userkey
+        name: signup
         required: true
         schema:
-          type: string
-      - description: user password
-        in: body
-        name: password
-        required: true
-        schema:
-          type: string
+          $ref: '#/definitions/core.signup'
       produces:
       - application/json
       responses:
@@ -180,4 +182,23 @@ paths:
         "400":
           description: userkey missing, or password missing or not strong enough
       summary: User signup
+  /verify:
+    post:
+      consumes:
+      - application/json
+      description: Email verification based on a token sent to a registered email
+      parameters:
+      - description: Verification JWT
+        in: query
+        name: verify
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+        "401":
+          description: bad token
+      summary: User verify
 swagger: "2.0"

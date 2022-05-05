@@ -18,8 +18,7 @@ const docTemplate = `{
     "paths": {
         "/adm/doot": {
             "get": {
-                "description": "admin ping and login check",
-                "summary": "ping example",
+                "summary": "Admin ming",
                 "parameters": [
                     {
                         "type": "string",
@@ -44,30 +43,12 @@ const docTemplate = `{
                 "summary": "User login",
                 "parameters": [
                     {
-                        "description": "user email",
-                        "name": "userkey",
+                        "description": "email, password and 2FA code. 2FA code is required",
+                        "name": "login",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "user password",
-                        "name": "password",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "the 2fa token",
-                        "name": "twofactorcode",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/core.login"
                         }
                     }
                 ],
@@ -92,8 +73,7 @@ const docTemplate = `{
         },
         "/doot": {
             "get": {
-                "description": "unauthenticated ping",
-                "summary": "ping example",
+                "summary": "Unauthenticated Ping",
                 "responses": {}
             }
         },
@@ -109,12 +89,12 @@ const docTemplate = `{
                 "summary": "Forgot password",
                 "parameters": [
                     {
-                        "description": "user email to reset",
+                        "description": "email to reset",
                         "name": "userkey",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/core.forgotten"
                         }
                     }
                 ],
@@ -140,29 +120,12 @@ const docTemplate = `{
                 "summary": "User login",
                 "parameters": [
                     {
-                        "description": "user email",
-                        "name": "userkey",
+                        "description": "Login information",
+                        "name": "login",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "user password",
-                        "name": "password",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "the 2fa token for the user, if activated",
-                        "name": "twofactorcode",
-                        "in": "body",
-                        "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/core.login"
                         }
                     }
                 ],
@@ -197,21 +160,12 @@ const docTemplate = `{
                 "summary": "Password reset",
                 "parameters": [
                     {
-                        "description": "the token emailed to the user",
-                        "name": "token",
+                        "description": "the reset token and the password",
+                        "name": "reset",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "the new password value",
-                        "name": "password",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/core.reset"
                         }
                     }
                 ],
@@ -230,8 +184,7 @@ const docTemplate = `{
         },
         "/sec/doot": {
             "get": {
-                "description": "user ping and login check",
-                "summary": "ping example",
+                "summary": "User ping",
                 "parameters": [
                     {
                         "type": "string",
@@ -256,21 +209,12 @@ const docTemplate = `{
                 "summary": "User signup",
                 "parameters": [
                     {
-                        "description": "user email",
-                        "name": "userkey",
+                        "description": "The signup information",
+                        "name": "signup",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "user password",
-                        "name": "password",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/core.signup"
                         }
                     }
                 ],
@@ -281,6 +225,96 @@ const docTemplate = `{
                     "400": {
                         "description": "userkey missing, or password missing or not strong enough"
                     }
+                }
+            }
+        },
+        "/verify": {
+            "post": {
+                "description": "Email verification based on a token sent to a registered email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "User verify",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Verification JWT",
+                        "name": "verify",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "401": {
+                        "description": "bad token"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "core.forgotten": {
+            "type": "object",
+            "required": [
+                "userkey"
+            ],
+            "properties": {
+                "userkey": {
+                    "type": "string"
+                }
+            }
+        },
+        "core.login": {
+            "type": "object",
+            "required": [
+                "password",
+                "userkey"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "twofactorcode": {
+                    "type": "string"
+                },
+                "userkey": {
+                    "type": "string"
+                }
+            }
+        },
+        "core.reset": {
+            "type": "object",
+            "required": [
+                "password",
+                "token"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "core.signup": {
+            "type": "object",
+            "required": [
+                "password",
+                "userkey"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "userkey": {
+                    "type": "string"
                 }
             }
         }

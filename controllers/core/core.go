@@ -56,8 +56,7 @@ const JwtHeader = "jwt"
 // @Description Sign a user up for a new account
 // @Accept json
 // @Produce json
-// @Param userkey body string true "user email"
-// @Param password body string true "user password"
+// @Param signup body signup true "The signup information"
 // @Router /signup [post]
 // @Success 200
 // @Failure 400 "userkey missing, or password missing or not strong enough"
@@ -104,9 +103,7 @@ func UserSignup() gin.HandlerFunc {
 // @Description Secured login for any user accounts
 // @Accept json
 // @Produce json
-// @Param userkey body string true "user email"
-// @Param password body string true "user password"
-// @Param twofactorcode body string false "the 2fa token for the user, if activated"
+// @Param login body login true "Login information"
 // @Router /login [post]
 // @Success 200
 // @Failure 401 "not found or credentials invalid"
@@ -165,6 +162,14 @@ func UserLogin() gin.HandlerFunc {
 // Parses a given JWT token and attempts to verify the `sub` in that token IFF
 // the token role == "verify". Verifying an already-verified user returns
 // a 200OK{next:"login"} without any action
+// @Summary User verify
+// @Description Email verification based on a token sent to a registered email
+// @Accept json
+// @Produce json
+// @Param verify query string true "Verification JWT"
+// @Router /verify [post]
+// @Success 200
+// @Failure 401 "bad token"
 func UserVerify() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		verifyJwt, _ := c.GetQuery("verify")
@@ -222,7 +227,7 @@ func UserVerify() gin.HandlerFunc {
 // @Description Request a password reset for the provided userkey
 // @Accept json
 // @Produce json
-// @Param userkey body string true "user email to reset"
+// @Param userkey body forgotten true "email to reset"
 // @Router /forgot [post]
 // @Success 200
 // @Failure 400 "userkey not provided"
@@ -251,8 +256,7 @@ func UserForgotPassword() gin.HandlerFunc {
 // @Description Use a JWT token to validate and reset a password
 // @Accept json
 // @Produce json
-// @Param token body string true "the token emailed to the user"
-// @Param password body string true "the new password value"
+// @Param reset body reset true "the reset token and the password"
 // @Router /reset [post]
 // @Success 200
 // @Failure 400 "token and password not provided"
@@ -304,13 +308,11 @@ func UserResetForgottenPassword() gin.HandlerFunc {
 }
 
 // Admin login functionality, similar to user login but requires 2FA to be set up.
-// @Summary User login
+// @Summary Admin login
 // @Description Secured login for any user accounts
 // @Accept json
 // @Produce json
-// @Param userkey body string true "user email"
-// @Param password body string true "user password"
-// @Param twofactorcode body string true "the 2fa token"
+// @Param login body login true "email, password and 2FA code. 2FA code is required"
 // @Router /admin [post]
 // @Success 200
 // @Failure 401 "not found or credentials invalid"
@@ -495,10 +497,10 @@ func StarterAdmin() gin.HandlerFunc {
 }
 
 // Ping functionality
-// @Summary ping example
-// @Description unauthenticated ping
+// @Summary Unauthenticated Ping
 // @Product json
 // @Router /doot [get]
+// @Success 200
 func Doot() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		piCtx, exists := c.Get("principal")
@@ -512,20 +514,20 @@ func Doot() gin.HandlerFunc {
 	}
 }
 
-// @Summary ping example
-// @Description user ping and login check
+// @Summary User ping
 // @Product json
 // @Router /sec/doot [get]
 // @Param jwt header string true "JWT Cookie set by /login"
+// @Success 200
 func UserDoot() gin.HandlerFunc {
 	return Doot()
 }
 
-// @Summary ping example
-// @Description admin ping and login check
+// @Summary Admin ping
 // @Product json
 // @Router /adm/doot [get]
 // @Param jwt header string true "JWT Cookie set by /admin"
+// @Success 200
 func AdminDoot() gin.HandlerFunc {
 	return Doot()
 }
