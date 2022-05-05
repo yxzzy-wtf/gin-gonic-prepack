@@ -52,6 +52,15 @@ const JwtHeader = "jwt"
 // attacks, this method will always return {next:"verification pending"}, even
 // if the given email is already in the system. If the email is already in the system,
 // that account will be emailed notifying them of the signup attempt.
+// @Summary User signup
+// @Description Sign a user up for a new account
+// @Accept json
+// @Produce json
+// @Param userkey body string true "user email"
+// @Param password body string true "user password"
+// @Router /signup [post]
+// @Success 200
+// @Failure 400 "userkey missing, or password missing or not strong enough"
 func UserSignup() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var signupVals signup
@@ -91,6 +100,18 @@ func UserSignup() gin.HandlerFunc {
 // Function to log in a user based on a given email, password [and 2FA code]. Similar to
 // AdminLogin but with slight differences. Resistant to enumeration attacks as error messages
 // are only displayed IFF the user exists AND the password is correct, otherwise a 401 is returned
+// @Summary User login
+// @Description Secured login for any user accounts
+// @Accept json
+// @Produce json
+// @Param userkey body string true "user email"
+// @Param password body string true "user password"
+// @Param twofactorcode body string false "the 2fa token for the user, if activated"
+// @Router /login [post]
+// @Success 200
+// @Failure 401 "not found or credentials invalid"
+// @Failure 400 "userkey or password missing"
+// @Header 200 {string} jwt "The authentication token for this session, valid for 24h"
 func UserLogin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Why do we do this? Assuming a consistent and stable service and an attacker
@@ -197,6 +218,14 @@ func UserVerify() gin.HandlerFunc {
 // requires a reset token; then sends an email with the appropriate reset token
 // to the user email in question. The same response will be returned if the given
 // user email does not exist
+// @Summary Forgot password
+// @Description Request a password reset for the provided userkey
+// @Accept json
+// @Produce json
+// @Param userkey body string true "user email to reset"
+// @Router /forgot [post]
+// @Success 200
+// @Failure 400 "userkey not provided"
 func UserForgotPassword() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var forgotVals forgotten
@@ -218,6 +247,16 @@ func UserForgotPassword() gin.HandlerFunc {
 
 // Method to reset a password, requiring a new password and a valid JWT token
 // of role="reset".
+// @Summary Password reset
+// @Description Use a JWT token to validate and reset a password
+// @Accept json
+// @Produce json
+// @Param token body string true "the token emailed to the user"
+// @Param password body string true "the new password value"
+// @Router /reset [post]
+// @Success 200
+// @Failure 400 "token and password not provided"
+// @Failure 401 "bad token or user not found"
 func UserResetForgottenPassword() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var resetVals reset
@@ -265,6 +304,18 @@ func UserResetForgottenPassword() gin.HandlerFunc {
 }
 
 // Admin login functionality, similar to user login but requires 2FA to be set up.
+// @Summary User login
+// @Description Secured login for any user accounts
+// @Accept json
+// @Produce json
+// @Param userkey body string true "user email"
+// @Param password body string true "user password"
+// @Param twofactorcode body string true "the 2fa token"
+// @Router /admin [post]
+// @Success 200
+// @Failure 401 "not found or credentials invalid"
+// @Failure 400 "userkey, 2fa token or password missing"
+// @Header 200 {string} jwt "The authentication token for this session, valid for 24h"
 func AdminLogin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Same as user slowdown
@@ -443,8 +494,11 @@ func StarterAdmin() gin.HandlerFunc {
 	}
 }
 
-// A simple context-aware ping method. If there is a "principal" in this request context
-// it will indicate the principal Uid and role in the response
+// Ping functionality
+// @Summary ping example
+// @Description unauthenticated ping
+// @Product json
+// @Router /doot [get]
 func Doot() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		piCtx, exists := c.Get("principal")
@@ -456,6 +510,24 @@ func Doot() gin.HandlerFunc {
 			c.JSON(http.StatusOK, map[string]string{"snoot": "dooted"})
 		}
 	}
+}
+
+// @Summary ping example
+// @Description user ping and login check
+// @Product json
+// @Router /sec/doot [get]
+// @Param jwt header string true "JWT Cookie set by /login"
+func UserDoot() gin.HandlerFunc {
+	return Doot()
+}
+
+// @Summary ping example
+// @Description admin ping and login check
+// @Product json
+// @Router /adm/doot [get]
+// @Param jwt header string true "JWT Cookie set by /admin"
+func AdminDoot() gin.HandlerFunc {
+	return Doot()
 }
 
 // To prevent 2FA theft attacks, a TOTP needs to be... well, an OTP. This will

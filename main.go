@@ -23,6 +23,9 @@ func Migrate(g *gorm.DB) {
 	g.AutoMigrate(&models.TotpUsage{})
 }
 
+// @title Go-Gin Prepack
+// @version 1
+// @BasePath /v1
 func main() {
 	config.LoadConfig()
 
@@ -33,7 +36,7 @@ func main() {
 	scheduled.Schedule(func() (string, time.Duration) {
 		err := database.Db.Where("used < ?", time.Now().Add(-24*time.Hour)).Delete(&models.TotpUsage{}).Error
 		if err != nil {
-			return "purge failed: " + err.Error(), time.Hour
+			return "purge failed, trying again in one hour: " + err.Error(), time.Hour
 		}
 		return "purged old TOTP usages", time.Hour * 24
 	})
@@ -53,7 +56,6 @@ func main() {
 
 	v1 := r.Group("/v1")
 
-	// Ping functionality
 	v1.GET("/doot", controllers.UnauthRateLimit(), core.Doot())
 
 	// Standard user signup, verify, login and forgot/reset pw

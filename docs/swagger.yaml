@@ -1,0 +1,183 @@
+basePath: /v1
+info:
+  contact: {}
+  title: Go-Gin Prepack
+  version: "1"
+paths:
+  /adm/doot:
+    get:
+      description: admin ping and login check
+      parameters:
+      - description: JWT Cookie set by /admin
+        in: header
+        name: jwt
+        required: true
+        type: string
+      responses: {}
+      summary: ping example
+  /admin:
+    post:
+      consumes:
+      - application/json
+      description: Secured login for any user accounts
+      parameters:
+      - description: user email
+        in: body
+        name: userkey
+        required: true
+        schema:
+          type: string
+      - description: user password
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      - description: the 2fa token
+        in: body
+        name: twofactorcode
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+          headers:
+            jwt:
+              description: The authentication token for this session, valid for 24h
+              type: string
+        "400":
+          description: userkey, 2fa token or password missing
+        "401":
+          description: not found or credentials invalid
+      summary: User login
+  /doot:
+    get:
+      description: unauthenticated ping
+      responses: {}
+      summary: ping example
+  /forgot:
+    post:
+      consumes:
+      - application/json
+      description: Request a password reset for the provided userkey
+      parameters:
+      - description: user email to reset
+        in: body
+        name: userkey
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+        "400":
+          description: userkey not provided
+      summary: Forgot password
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Secured login for any user accounts
+      parameters:
+      - description: user email
+        in: body
+        name: userkey
+        required: true
+        schema:
+          type: string
+      - description: user password
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      - description: the 2fa token for the user, if activated
+        in: body
+        name: twofactorcode
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+          headers:
+            jwt:
+              description: The authentication token for this session, valid for 24h
+              type: string
+        "400":
+          description: userkey or password missing
+        "401":
+          description: not found or credentials invalid
+      summary: User login
+  /reset:
+    post:
+      consumes:
+      - application/json
+      description: Use a JWT token to validate and reset a password
+      parameters:
+      - description: the token emailed to the user
+        in: body
+        name: token
+        required: true
+        schema:
+          type: string
+      - description: the new password value
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+        "400":
+          description: token and password not provided
+        "401":
+          description: bad token or user not found
+      summary: Password reset
+  /sec/doot:
+    get:
+      description: user ping and login check
+      parameters:
+      - description: JWT Cookie set by /login
+        in: header
+        name: jwt
+        required: true
+        type: string
+      responses: {}
+      summary: ping example
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: Sign a user up for a new account
+      parameters:
+      - description: user email
+        in: body
+        name: userkey
+        required: true
+        schema:
+          type: string
+      - description: user password
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+        "400":
+          description: userkey missing, or password missing or not strong enough
+      summary: User signup
+swagger: "2.0"
