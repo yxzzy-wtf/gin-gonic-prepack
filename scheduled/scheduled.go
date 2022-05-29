@@ -7,12 +7,18 @@ import (
 
 type Scheduled func() (string, time.Duration)
 
-func Schedule(f Scheduled) {
+func ExecuteImmediatelyAndSchedule(f Scheduled) {
 	print, wait := f()
 	fmt.Println(print)
 
-	go func(w time.Duration) {
-		time.Sleep(w)
-		Schedule(f)
-	}(wait)
+	go ExecuteWithDelayAndSchedule(f, wait)
+}
+
+func ExecuteWithDelayAndSchedule(f Scheduled, wait time.Duration) {
+	time.Sleep(wait)
+
+	print, nextWait := f()
+	fmt.Println(print)
+
+	go ExecuteWithDelayAndSchedule(f, nextWait)
 }

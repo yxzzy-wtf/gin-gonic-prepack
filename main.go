@@ -33,7 +33,7 @@ func main() {
 	Migrate(db)
 
 	// Scheduled tasks
-	scheduled.Schedule(func() (string, time.Duration) {
+	go scheduled.ExecuteImmediatelyAndSchedule(func() (string, time.Duration) {
 		err := database.Db.Where("used < ?", time.Now().Add(-24*time.Hour)).Delete(&models.TotpUsage{}).Error
 		if err != nil {
 			return "purge failed, trying again in one hour: " + err.Error(), time.Hour
