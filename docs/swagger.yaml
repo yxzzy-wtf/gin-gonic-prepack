@@ -52,8 +52,10 @@ paths:
         name: jwt
         required: true
         type: string
-      responses: {}
-      summary: Admin ming
+      responses:
+        "200":
+          description: ""
+      summary: Admin ping
   /admin:
     post:
       consumes:
@@ -79,10 +81,12 @@ paths:
           description: userkey, 2fa token or password missing
         "401":
           description: not found or credentials invalid
-      summary: User login
+      summary: Admin login
   /doot:
     get:
-      responses: {}
+      responses:
+        "200":
+          description: ""
       summary: Unauthenticated Ping
   /forgot:
     post:
@@ -152,6 +156,18 @@ paths:
         "401":
           description: bad token or user not found
       summary: Password reset
+  /sec/2fa-doot:
+    get:
+      parameters:
+      - description: 2FA authentication code
+        in: query
+        name: twofactorcode
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+      summary: 2FA-Restricted Ping
   /sec/doot:
     get:
       parameters:
@@ -160,7 +176,9 @@ paths:
         name: jwt
         required: true
         type: string
-      responses: {}
+      responses:
+        "200":
+          description: ""
       summary: User ping
   /signup:
     post:

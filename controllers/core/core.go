@@ -556,3 +556,11 @@ func checkTwoFactorNotReused(a *models.Auth, tfCode string) bool {
 
 	return true
 }
+
+// Secure ping functionality
+// @Summary 2FA-Restricted Ping
+// @Product json
+// @Param twofactorcode query string true "2FA authentication code"
+// @Router /sec/2fa-doot [get]
+// @Success 200
+func secureDootDefinition() {}

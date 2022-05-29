@@ -18,7 +18,7 @@ const docTemplate = `{
     "paths": {
         "/adm/doot": {
             "get": {
-                "summary": "Admin ming",
+                "summary": "Admin ping",
                 "parameters": [
                     {
                         "type": "string",
@@ -28,7 +28,11 @@ const docTemplate = `{
                         "required": true
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                }
             }
         },
         "/admin": {
@@ -40,7 +44,7 @@ const docTemplate = `{
                 "produces": [
                     "application/json"
                 ],
-                "summary": "User login",
+                "summary": "Admin login",
                 "parameters": [
                     {
                         "description": "email, password and 2FA code. 2FA code is required",
@@ -74,7 +78,11 @@ const docTemplate = `{
         "/doot": {
             "get": {
                 "summary": "Unauthenticated Ping",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                }
             }
         },
         "/forgot": {
@@ -182,6 +190,25 @@ const docTemplate = `{
                 }
             }
         },
+        "/sec/2fa-doot": {
+            "get": {
+                "summary": "2FA-Restricted Ping",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "2FA authentication code",
+                        "name": "twofactorcode",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/sec/doot": {
             "get": {
                 "summary": "User ping",
@@ -194,7 +221,11 @@ const docTemplate = `{
                         "required": true
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                }
             }
         },
         "/signup": {
