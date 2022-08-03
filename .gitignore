@@ -17,3 +17,5 @@
 # Other
 prepack.db
 test_prepack.db
+
+.vscode/

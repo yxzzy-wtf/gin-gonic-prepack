@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,15 +16,31 @@ type rule struct {
 }
 
 type bucket struct {
-	rules  map[string]rule
+	rules  *map[string]rule
 	access map[string]int
 }
 
 func (b *bucket) take(resource string) bool {
-	r, ex := b.rules[resource]
+	r, ex := (*b.rules)[resource]
 	if !ex {
-		resource = "*"
-		r = b.rules[resource]
+		// does not exist, forced to try match on regex?
+		regexMatched := false
+		for attemptMatch, attemptRes := range *b.rules {
+			match, _ := regexp.MatchString("^"+attemptMatch+"$", resource)
+			if match {
+				resource = attemptMatch
+				r = attemptRes
+				regexMatched = true
+				break
+			}
+		}
+
+		if !regexMatched {
+			// Default to Global
+			fmt.Printf("defaulting %v to global\n", resource)
+			resource = ""
+			r = (*b.rules)[resource]
+		}
 	}
 	max := r.limit
 	duration := r.duration
@@ -57,7 +75,7 @@ func (m *megabucket) take(signature string, resource string) bool {
 	b, ex := m.buckets[signature]
 	if !ex {
 		b = bucket{
-			rules:  m.rules,
+			rules:  &m.rules,
 			access: map[string]int{},
 		}
 		m.buckets[signature] = b
