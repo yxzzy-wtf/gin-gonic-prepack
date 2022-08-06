@@ -12,7 +12,7 @@ func TestImmediateScheduler(t *testing.T) {
 
 	go ExecuteImmediatelyAndSchedule(func() (string, time.Duration) {
 		c <- true
-		return "", time.Second
+		return "", time.Millisecond * 10
 	})
 
 	<-c
@@ -25,7 +25,7 @@ func TestImmediateScheduler(t *testing.T) {
 
 	<-c
 
-	secondDuration := elapsed + time.Duration.Nanoseconds(time.Second) + firstDuration
+	secondDuration := elapsed + time.Duration.Nanoseconds(time.Millisecond*10) + firstDuration
 	elapsed = time.Now().UnixNano() - now
 	if elapsed > secondDuration {
 		t.Errorf("did not schedule second execute within %v nanoseconds, took %v", secondDuration, elapsed)
@@ -33,7 +33,7 @@ func TestImmediateScheduler(t *testing.T) {
 
 	<-c
 
-	thirdDuration := elapsed + time.Duration.Nanoseconds(time.Second) + firstDuration
+	thirdDuration := elapsed + time.Duration.Nanoseconds(time.Millisecond*10) + firstDuration
 	elapsed = time.Now().UnixNano() - now
 	if elapsed > thirdDuration {
 		t.Errorf("did not schedule third execute within %v nanoseconds, took %v", thirdDuration, elapsed)
@@ -47,7 +47,7 @@ func TestDelayedScheduler(t *testing.T) {
 
 	go ExecuteWithDelayAndSchedule(func() (string, time.Duration) {
 		c <- true
-		return "", time.Second
+		return "", time.Millisecond * 10
 	}, time.Millisecond*500)
 
 	<-c
@@ -60,7 +60,7 @@ func TestDelayedScheduler(t *testing.T) {
 
 	<-c
 
-	secondDuration := elapsed + time.Duration.Nanoseconds(time.Second) + firstDuration
+	secondDuration := elapsed + time.Duration.Nanoseconds(time.Millisecond*10) + firstDuration
 	elapsed = time.Now().UnixNano() - now
 	if elapsed > secondDuration {
 		t.Errorf("did not schedule second execute within %v nanoseconds, took %v", secondDuration, elapsed)
@@ -68,7 +68,7 @@ func TestDelayedScheduler(t *testing.T) {
 
 	<-c
 
-	thirdDuration := elapsed + time.Duration.Nanoseconds(time.Second) + firstDuration
+	thirdDuration := elapsed + time.Duration.Nanoseconds(time.Millisecond*10) + firstDuration
 	elapsed = time.Now().UnixNano() - now
 	if elapsed > thirdDuration {
 		t.Errorf("did not schedule third execute within %v nanoseconds, took %v", thirdDuration, elapsed)
