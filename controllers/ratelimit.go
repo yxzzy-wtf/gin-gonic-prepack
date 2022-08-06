@@ -91,6 +91,10 @@ var unauthed = megabucket{
 	},
 }
 
+/**
+ * Applies rate limiting to unauthorized actors based on their IP address.
+ * Imperfect, but better than a stab to the eye with a blunt pencil.
+ */
 func UnauthRateLimit() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
@@ -109,6 +113,10 @@ var authed = megabucket{
 	},
 }
 
+/**
+ *  Authorized rate limit. Using the UID of the authorized user as the
+ *  accessor signature, rate limit based on the preexisting rules.
+ */
 func AuthedRateLimit() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		pif, exists := c.Get("principal")

@@ -154,6 +154,8 @@ func UserLogin() gin.HandlerFunc {
 		}
 
 		jwt, maxAge := u.GetJwt()
+		//TODO we should set the domain for this cookie via a variable as it may not
+		// always be /v1/sec
 		c.SetCookie(JwtHeader, jwt, maxAge, "/v1/sec/", "", true, true)
 		<-minTime
 	}
@@ -359,7 +361,7 @@ func AdminLogin() gin.HandlerFunc {
 		}
 
 		jwt, maxAge := a.GetJwt()
-		c.SetCookie(JwtHeader, jwt, maxAge, "/v1/sec/", "", true, true)
+		c.SetCookie(JwtHeader, jwt, maxAge, "/v1/adm/", "", true, true)
 		<-minTime
 	}
 }
@@ -563,4 +565,4 @@ func checkTwoFactorNotReused(a *models.Auth, tfCode string) bool {
 // @Param twofactorcode query string true "2FA authentication code"
 // @Router /sec/2fa-doot [get]
 // @Success 200
-func secureDootDefinition() {}
+func SecureDootDefinition() {}
