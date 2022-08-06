@@ -9,10 +9,10 @@ func TestBucketBehaviour(t *testing.T) {
 	b := bucket{
 		rules: &map[string]rule{
 			"":                                       {time.Second, 0}, // Deny
-			"/1sec5max":                              {time.Second, 5},
-			"/2sec1max":                              {time.Second * 2, 1},
-			"/wildcard/.+/1sec1max":                  {time.Second, 1},
-			"/regex/(test|woot)/1sec2max/[A-Z]{2,3}": {time.Second, 2},
+			"/1sec5max":                              {time.Millisecond * 10, 5},
+			"/2sec1max":                              {time.Millisecond * 20, 1},
+			"/wildcard/.+/1sec1max":                  {time.Millisecond * 10, 1},
+			"/regex/(test|woot)/1sec2max/[A-Z]{2,3}": {time.Millisecond * 10, 2},
 		},
 		access: map[string]int{},
 	}
@@ -68,7 +68,7 @@ func TestBucketBehaviour(t *testing.T) {
 	}
 
 	// Wait for the smallest duration, 1 second, and test
-	time.Sleep(time.Second + time.Millisecond*200)
+	time.Sleep(time.Millisecond * 12)
 
 	fourthTestShouldSucceedAgain := []string{
 		"/1sec5max",
@@ -97,7 +97,7 @@ func TestBucketBehaviour(t *testing.T) {
 		}
 	}
 
-	time.Sleep(time.Second + time.Millisecond*200)
+	time.Sleep(time.Millisecond * 12)
 
 	fifthTestShouldNowSucceed := fourthTestShouldStillFail
 
@@ -113,8 +113,8 @@ func TestMegabucketBehaviour(t *testing.T) {
 	m := megabucket{
 		rules: map[string]rule{
 			"":          {time.Second, 0}, // Deny
-			"/1sec5max": {time.Second, 5},
-			"/2sec1max": {time.Second * 2, 1},
+			"/1sec5max": {time.Millisecond * 10, 5},
+			"/2sec1max": {time.Millisecond * 20, 1},
 		},
 		buckets: map[string]bucket{},
 	}
@@ -152,7 +152,7 @@ func TestMegabucketBehaviour(t *testing.T) {
 	}
 
 	// Wait one second, confirm that both can do 5x 1sec5max again
-	time.Sleep(time.Second + time.Millisecond*200)
+	time.Sleep(time.Millisecond * 12)
 
 	thirdTestUnblockedBothSucceed := []string{
 		"/1sec5max",
@@ -168,6 +168,14 @@ func TestMegabucketBehaviour(t *testing.T) {
 		if !m.take("user2", succeed) {
 			t.Errorf("user2 failed to take %v: %v", i, succeed)
 		}
+	}
+
+	if m.take("user1", "/2sec1max") {
+		t.Errorf("user1 could take /2sec1max but should still be blocked")
+	}
+
+	if m.take("user2", "/2sec1max") {
+		t.Errorf("user2 could take /2sec1max but should still be blocked")
 	}
 
 }
