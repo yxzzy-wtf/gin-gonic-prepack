@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"time"
@@ -37,7 +37,7 @@ func (b *bucket) take(resource string) bool {
 
 		if !regexMatched {
 			// Default to Global
-			fmt.Printf("defaulting %v to global\n", resource)
+			log.Printf("defaulting %v to global\n", resource)
 			resource = ""
 			r = (*b.rules)[resource]
 		}

@@ -5,6 +5,7 @@ package core
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"strings"
@@ -79,7 +80,7 @@ func UserSignup() gin.HandlerFunc {
 
 		if err := u.Create(); err != nil {
 			if err.Error() != "UNIQUE constraint failed: users.email" {
-				fmt.Println(fmt.Errorf("error: %w", err))
+				log.Println(fmt.Errorf("error: %w", err))
 				c.AbortWithStatus(http.StatusInternalServerError)
 				return
 			} else {
@@ -147,7 +148,7 @@ func UserLogin() gin.HandlerFunc {
 		}
 
 		if loginVals.TwoFactor != "" && !checkTwoFactorNotReused(&u.Auth, loginVals.TwoFactor) {
-			fmt.Printf("WARNING: two factor code %v reused for %v\n", loginVals.TwoFactor, u.Uid)
+			log.Printf("WARNING: two factor code %v reused for %v\n", loginVals.TwoFactor, u.Uid)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: "2fa reused"})
 			<-minTime
 			return
@@ -178,7 +179,7 @@ func UserVerify() gin.HandlerFunc {
 
 		claims, err := util.ParseJwt(verifyJwt, models.UserHmac)
 		if err != nil || claims["role"] != "verify" {
-			fmt.Println("bad claim or role not 'verify'", err)
+			log.Println("bad claim or role not 'verify'", err)
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
@@ -186,7 +187,7 @@ func UserVerify() gin.HandlerFunc {
 		// Yay! Jwt is a verify token, let's verify the linked user
 		uid, err := uuid.Parse(claims["sub"].(string))
 		if err != nil {
-			fmt.Println("sub should ALWAYS be valid uuid at this point??", err)
+			log.Println("sub should ALWAYS be valid uuid at this point??", err)
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
@@ -199,7 +200,7 @@ func UserVerify() gin.HandlerFunc {
 		}
 
 		if err := database.Db.Find(&verifying).Error; err != nil {
-			fmt.Println("could not find user", err)
+			log.Println("could not find user", err)
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
@@ -212,7 +213,7 @@ func UserVerify() gin.HandlerFunc {
 
 		verifying.Verified = true
 		if err := verifying.Save(); err != nil {
-			fmt.Println("could not verify user", err)
+			log.Println("could not verify user", err)
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
@@ -273,14 +274,14 @@ func UserResetForgottenPassword() gin.HandlerFunc {
 
 		claims, err := util.ParseJwt(resetVals.Token, models.UserHmac)
 		if err != nil || claims["role"] != "reset" {
-			fmt.Println("bad claim or role not 'reset'", err)
+			log.Println("bad claim or role not 'reset'", err)
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
 		uid, err := uuid.Parse(claims["sub"].(string))
 		if err != nil {
-			fmt.Println("sub should ALWAYS be valid uuid at this point??", err)
+			log.Println("sub should ALWAYS be valid uuid at this point??", err)
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
@@ -293,14 +294,15 @@ func UserResetForgottenPassword() gin.HandlerFunc {
 		}
 
 		if err := database.Db.Find(&resetting).Error; err != nil {
-			fmt.Println("could not find user", err)
+			log.Println("could not find user", err)
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
 		resetting.SetPassword(resetVals.NewPassword)
 		if err := resetting.Save(); err != nil {
-			fmt.Println("could not save user", err)
+			log.
+				log.Error("could not save user", err)
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
@@ -354,7 +356,7 @@ func AdminLogin() gin.HandlerFunc {
 		}
 
 		if loginVals.TwoFactor != "" && !checkTwoFactorNotReused(&a.Auth, loginVals.TwoFactor) {
-			fmt.Printf("WARNING: two factor code %v reused by admin %v\n", loginVals.TwoFactor, a.Uid)
+			log.Printf("WARNING: two factor code %v reused by admin %v\n", loginVals.TwoFactor, a.Uid)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: "2fa reused"})
 			<-minTime
 			return
@@ -381,7 +383,7 @@ func genericAuth(expectedRole string, hmac []byte) gin.HandlerFunc {
 			if strings.HasPrefix(err.Error(), "token ") || err.Error() == "signature is invalid" {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, util.FailMsg{Reason: err.Error()})
 			} else {
-				fmt.Println(err)
+				log.Println(err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, util.FailMsg{Reason: "something went wrong"})
 			}
 			return

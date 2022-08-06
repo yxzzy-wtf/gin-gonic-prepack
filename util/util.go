@@ -3,6 +3,7 @@ package util
 import (
 	"crypto/rand"
 	"fmt"
+	"log"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
@@ -32,7 +33,7 @@ type NextMsg struct {
 
 func SendEmail(title string, body string, recipients []string) {
 	//TODO
-	fmt.Println("Send", title, body, "to", recipients)
+	log.Println("Send", title, body, "to", recipients)
 }
 
 func ParseJwt(tokenStr string, hmac []byte) (jwt.MapClaims, error) {
