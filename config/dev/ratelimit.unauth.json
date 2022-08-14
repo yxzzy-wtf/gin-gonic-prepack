@@ -1,0 +1,19 @@
+{
+    "": 
+        {"seconds": 60, "max": 30, "_comment": "Global unauthenticated ratelimit."},
+
+    "/v1/doot": 
+        {"seconds": 5, "max": 5, "_comment": "Unauthenticated DOOT for server monitoring."},
+
+    "/v1/login": 
+        {"seconds": 60, "max": 3, "_comment": "Prevent bruteforce attacks on Login."},
+
+    "/v1/admin": 
+        {"seconds": 60, "max": 1, "_comment": "Prevent bruteforce attacks on Admin Login."},
+
+    "/v1/signup": 
+        {"seconds": 1800, "max": 1, "_comment": "Prevent spam account creation."},
+
+    "/v1/forgot": 
+        {"seconds": 60, "max": 1, "_comment": "Slow down 'forgot password' enumeration/spam."}
+}

@@ -75,6 +75,7 @@ func main() {
 	v1Admin := v1.Group("/adm", core.AdminAuth())
 
 	v1Admin.GET("/doot", core.Doot())
+	v1Admin.GET("/2fa-doot", core.LiveTwoFactor(), core.Doot())
 
 	// Start server
 	if err := http.ListenAndServe(":9091", r); err != nil {

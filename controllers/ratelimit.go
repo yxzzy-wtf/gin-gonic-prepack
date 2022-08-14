@@ -1,14 +1,22 @@
 package controllers
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/yxzzy-wtf/gin-gonic-prepack/config"
 	"github.com/yxzzy-wtf/gin-gonic-prepack/util"
 )
+
+type ruleDescription struct {
+	seconds int
+	max     int
+}
 
 type rule struct {
 	duration time.Duration
@@ -71,6 +79,20 @@ type megabucket struct {
 	rules   map[string]rule
 }
 
+func (m *megabucket) loadFromConfig(filename string) {
+	file, _ := os.Open("conf.json")
+	defer file.Close()
+	dec := json.NewDecoder(file)
+	ruleMap := map[string]ruleDescription{}
+	if err := dec.Decode(&ruleMap); err != nil {
+		panic(err)
+	}
+
+	for rkey, r := range ruleMap {
+		m.rules[rkey] = rule{duration: time.Second * time.Duration(r.seconds), limit: r.max}
+	}
+}
+
 func (m *megabucket) take(signature string, resource string) bool {
 	b, ex := m.buckets[signature]
 	if !ex {
@@ -86,10 +108,9 @@ func (m *megabucket) take(signature string, resource string) bool {
 
 var unauthed = megabucket{
 	buckets: map[string]bucket{},
-	rules: map[string]rule{
-		"*": {duration: time.Second * 10, limit: 20},
-	},
+	rules:   map[string]rule{},
 }
+var unauthLoaded = false
 
 /**
  * Applies rate limiting to unauthorized actors based on their IP address.
@@ -97,6 +118,11 @@ var unauthed = megabucket{
  */
 func UnauthRateLimit() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if !unauthLoaded {
+			unauthed.loadFromConfig(config.GetConfigPath(config.Config.UnauthedRateLimitConfig))
+			unauthLoaded = true
+		}
+
 		ip := c.ClientIP()
 
 		if !unauthed.take(ip, "") {
@@ -108,10 +134,9 @@ func UnauthRateLimit() gin.HandlerFunc {
 
 var authed = megabucket{
 	buckets: map[string]bucket{},
-	rules: map[string]rule{
-		"*": {duration: time.Second * 10, limit: 5},
-	},
+	rules:   map[string]rule{},
 }
+var authLoaded = false
 
 /**
  *  Authorized rate limit. Using the UID of the authorized user as the
@@ -119,6 +144,11 @@ var authed = megabucket{
  */
 func AuthedRateLimit() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if !authLoaded {
+			authed.loadFromConfig(config.GetConfigPath(config.Config.AuthedRateLimitConfig))
+			authLoaded = true
+		}
+
 		pif, exists := c.Get("principal")
 		p := pif.(util.PrincipalInfo)
 		if !exists {

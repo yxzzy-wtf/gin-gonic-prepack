@@ -301,8 +301,7 @@ func UserResetForgottenPassword() gin.HandlerFunc {
 
 		resetting.SetPassword(resetVals.NewPassword)
 		if err := resetting.Save(); err != nil {
-			log.
-				log.Error("could not save user", err)
+			log.Println("could not save user", err)
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}

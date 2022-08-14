@@ -1,0 +1,8 @@
+{
+    "AllowFreshAdminGeneration": true,
+    "AdminEmails": ["admin@admin.invalid"],
+    "AdminHmacEnv": "ADMIN_HMAC_ENV",
+    "UserHmacEnv": "USER_HMAC_ENV",
+	"AuthedRateLimitConfig": "ratelimit.auth.json",
+	"UnauthedRateLimitConfig": "ratelimit.unauth.json"
+}

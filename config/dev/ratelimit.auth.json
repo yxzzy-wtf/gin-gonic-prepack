@@ -1,0 +1,17 @@
+{
+    "": {"seconds": 60, "max": 30, "_comment": "Global ratelimit."},
+
+    "/v1/sec/doot": 
+        {"seconds": 5, "max": 3, "_comment": "One DPS (Doot Per Second) for monitoring?"},
+
+    "/v1/sec/2fa-doot": 
+        {"seconds": 10, "max": 1, "_comment": "2FA doot probably doesn't need much usage at all, mainly exists as a proof of concept."},
+
+    "/v1/adm/doot": 
+        {"seconds": 5, "max": 3, "_comment": "One DPS (Doot Per Second) for monitoring?"},
+
+    "/v1/adm/2fa-doot": 
+        {"seconds": 10, "max": 1, "_comment": "2FA doot probably doesn't need much usage at all, mainly exists as a proof of concept."}
+    
+    
+}
