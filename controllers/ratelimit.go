@@ -119,7 +119,7 @@ var unauthLoaded = false
 func UnauthRateLimit() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if !unauthLoaded {
-			unauthed.loadFromConfig(config.GetConfigPath(config.Config.UnauthedRateLimitConfig))
+			unauthed.loadFromConfig(config.GetConfigPath(config.Config().UnauthedRateLimitConfig))
 			unauthLoaded = true
 		}
 
@@ -145,7 +145,7 @@ var authLoaded = false
 func AuthedRateLimit() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if !authLoaded {
-			authed.loadFromConfig(config.GetConfigPath(config.Config.AuthedRateLimitConfig))
+			authed.loadFromConfig(config.GetConfigPath(config.Config().AuthedRateLimitConfig))
 			authLoaded = true
 		}
 

@@ -44,7 +44,7 @@ func main() {
 	r := gin.Default()
 
 	// Fresh admin functionality
-	if config.Config.AllowFreshAdminGeneration {
+	if config.Config().AllowFreshAdminGeneration {
 		var adminCount int64
 		database.Db.Model(models.Admin{}).Count(&adminCount)
 

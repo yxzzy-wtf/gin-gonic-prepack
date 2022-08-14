@@ -19,7 +19,11 @@ type StackConfiguration struct {
 
 var Environment = os.Getenv("STACK_ENVIRONMENT")
 
-var Config = StackConfiguration{}
+var configInternal = StackConfiguration{}
+
+func Config() StackConfiguration {
+	return configInternal
+}
 
 func GetConfigPath(filename string) string {
 	if Environment == "" {
@@ -35,11 +39,11 @@ func LoadConfig() {
 	}
 	defer file.Close()
 	dec := json.NewDecoder(file)
-	if err := dec.Decode(&Config); err != nil {
+	if err := dec.Decode(&configInternal); err != nil {
 		panic(err)
 	}
 
-	Config.ConfigLoaded = true
+	configInternal.ConfigLoaded = true
 
 	log.Printf("Loaded Config for stack " + Environment)
 }

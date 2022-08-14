@@ -493,7 +493,7 @@ func StarterAdmin() gin.HandlerFunc {
 			return
 		}
 
-		go util.SendEmail("Admin Created", "A new admin, "+a.Email+", has been created", config.Config.AdminEmails)
+		go util.SendEmail("Admin Created", "A new admin, "+a.Email+", has been created", config.Config().AdminEmails)
 
 		c.JSON(http.StatusOK, util.NextMsg{Next: "db verify"})
 	}
