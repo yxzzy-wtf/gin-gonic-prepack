@@ -125,7 +125,7 @@ func UnauthRateLimit() gin.HandlerFunc {
 
 		ip := c.ClientIP()
 
-		if !unauthed.take(ip, "") {
+		if !unauthed.take(ip, c.Request.Method+":"+c.FullPath()) {
 			c.AbortWithStatus(http.StatusTooManyRequests)
 			return
 		}
@@ -156,7 +156,7 @@ func AuthedRateLimit() gin.HandlerFunc {
 			return
 		}
 
-		if !authed.take(p.Uid.String(), c.FullPath()) {
+		if !authed.take(p.Uid.String(), c.Request.Method+":"+c.FullPath()) {
 			c.AbortWithStatus(http.StatusTooManyRequests)
 			return
 		}
