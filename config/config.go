@@ -15,6 +15,13 @@ type StackConfiguration struct {
 	UserHmacEnv               string
 	AuthedRateLimitConfig     string
 	UnauthedRateLimitConfig   string
+
+	DbDialect        string
+	DbUsername       string
+	DbPasswordSecret string
+	DbUrl            string
+	DbPort           string
+	DbName           string
 }
 
 var Environment = os.Getenv("STACK_ENVIRONMENT")

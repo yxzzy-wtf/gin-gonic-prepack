@@ -4,5 +4,12 @@
     "AdminHmacEnv": "ADMIN_HMAC_ENV",
     "UserHmacEnv": "USER_HMAC_ENV",
 	"AuthedRateLimitConfig": "ratelimit.auth.json",
-	"UnauthedRateLimitConfig": "ratelimit.unauth.json"
+	"UnauthedRateLimitConfig": "ratelimit.unauth.json",
+
+    "DbDialect": "sqlite",
+    "DbUrl": "prepack.db",
+    "DbUsername": "",
+    "DbPasswordSecret": "",
+    "DbPort": "",
+    "DbName": ""
 }
